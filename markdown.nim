@@ -106,9 +106,11 @@ proc toHtml*(md: TMarkdown): String =
   for match in md.findAll(enumeratedList):
     var res = "<ol>\n"
     for line in match.splitLines:
-      res.add(
-        line.replacef(enumeratedListLine, "<li>$1</li>\n")
-        )
+      if line =~ enumeratedListLine:
+        res.add("<li>" & matches[0] & "</li>\n")
+      else:
+        # blank line? Skip
+        continue
     res.add("</ol>")
     md = md.replace(match, res)
 
@@ -117,13 +119,17 @@ proc toHtml*(md: TMarkdown): String =
     for line in match.splitLines:
       res.add("<li>")
       if line =~ taskListLine:
-        res.add("""<input type="checkbox" disabled="">""")
+        res.add("""<input type="checkbox" disabled="" """)
         if matches[0].len > 0 and matches[0][0] in {'x', 'X'}:
-          res.add(""" checked=""/>""" & matches[1])
+          res.add("""checked=""></input>""" & matches[1])
         else:
-          res.add("""/>""" & matches[1])
+          res.add("""/></input>""" & matches[1])
+      elif line =~ itemizedListLine:
+        res.add(matches[0])
       else:
-        res.add(line.replacef(itemizedListLine, "$1"))
+        # Blank line, just undo and skip
+        res = res.substr(0, res.len-5)
+        continue
       res.add("</li>\n")
     res.add("</ul>\n")
 
@@ -138,4 +144,9 @@ echo parseMarkdown("""
  - [] ~~23~~
  - 32
  - [x] `23`
+
+``` nimrod
+a
+b
+```
   """).toHtml()
