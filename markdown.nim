@@ -57,20 +57,20 @@ let
     )+ )""", {reExtended, reStudy, reMultiLine})
   enumeratedListLine = re""" ^ [ \t]* \d+\.[ \t]* (.*)$ """
   itemizedList = re("""
-    ( (?: ^ [ \t]* - .*$)+ |
-      (?: ^ [ \t]* \* .*$)+ )
+    ( (?:
+      (?:^|(?<=[\n\r]))
+      [ \t]* [-*] .*
+      (?:[\n\r]|$)
+    )+ )
   """, {reExtended, reStudy, reMultiLine})
-  taskList = re("""
-    ( (?: ^ [ \t]*  - [ ]* \[[x ]\] .*$)+ |
-      (?: ^ [ \t]* \* [ ]* \[[x ]\] .*$)+ )
-  """, {reExtended, reStudy, reMultiLine})
-
+  taskListLine = re""" ^ [ \t]* [-*] [ \t]* \[(.?)\] [ \t]* (.*)$ """
+  itemizedListLine = re""" ^ [ \t]* [-*] [ \t]* (.*)$ """
 
 proc parseMarkdown*(text: String): TMarkdown = text
 
 proc findManipulateAndReplaceHash(
      md: var TMarkDown,
-     hashToCodeMap: var Seq[Tuple[key, val: String]],
+     hashToCodeMap: var Seq[Tuple[pattern: TRegex, repl: String]],
      findExpr: TRegex,
      transFunc: proc(v: String): String) =
   let matches = md.findAll(findExpr)
@@ -78,18 +78,21 @@ proc findManipulateAndReplaceHash(
     var modifiedMatch = transFunc(match)
     let hash = sha1(modifiedMatch).toHex
     md = md.replace(match, hash)
-    hashToCodeMap.add((match, hash))
+    hashToCodeMap.add((re(hash), modifiedMatch))
 
 proc toHtml*(md: TMarkdown): String =
   var md = md
-  var hashToCodeMap: Seq[Tuple[key, val: String]] = @[]
+  var hashToCodeMap: Seq[Tuple[pattern: TRegex, repl: String]] = @[]
+  var hashToInlineCodeMap: Seq[Tuple[pattern: TRegex, repl: String]] = @[]
 
-  for rule in [blockCode, inlineCode]:
-    findManipulateAndReplaceHash(md, hashToCodeMap, rule, proc(s: String): String = s)
-
+  findManipulateAndReplaceHash(md, hashToInlineCodeMap, inlineCode,
+    proc(s: String): String = "<code>" & s & "</code>")
+  findManipulateAndReplaceHash(md, hashToCodeMap, blockCode,
+    proc(s: String): String = "<pre><code>\n" & s & "\n</code></pre>\n")
   findManipulateAndReplaceHash(md, hashToCodeMap, indentCode,
     proc(s: String): String = (
-      s.replace(indentCodeLeadingWhitespace, "")
+      var res = s.replace(indentCodeLeadingWhitespace, "");
+      "<pre><code>\n" & res & "\n</code></pre>\n"
     ))
 
   for match in md.findAll(blockQuote):
@@ -97,6 +100,8 @@ proc toHtml*(md: TMarkdown): String =
     md = md.replace(match, "<blockquote>\n" & strippedMatch & "\n</blockquote>")
 
   md = md.parallelReplace([url, link, image, italics, bold, strikethrough])
+
+  # XXX nested lists
 
   for match in md.findAll(enumeratedList):
     var res = "<ol>\n"
@@ -107,12 +112,30 @@ proc toHtml*(md: TMarkdown): String =
     res.add("</ol>")
     md = md.replace(match, res)
 
+  for match in md.findAll(itemizedList):
+    var res = "<ul>\n"
+    for line in match.splitLines:
+      res.add("<li>")
+      if line =~ taskListLine:
+        res.add("""<input type="checkbox" disabled="">""")
+        if matches[0].len > 0 and matches[0][0] in {'x', 'X'}:
+          res.add(""" checked=""/>""" & matches[1])
+        else:
+          res.add("""/>""" & matches[1])
+      else:
+        res.add(line.replacef(itemizedListLine, "$1"))
+      res.add("</li>\n")
+    res.add("</ul>\n")
 
+    md = md.replace(match, res)
+
+  md = md.parallelReplace(hashToCodeMap)
+  md = md.parallelReplace(hashToInlineCodeMap)
 
   return md
 
 echo parseMarkdown("""
- 1. ~~23~~
- 2. 32
- 3. 23
+ - [] ~~23~~
+ - 32
+ - [x] `23`
   """).toHtml()
