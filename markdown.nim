@@ -144,13 +144,5 @@ proc toHtml*(md: TMarkdown): String =
 
   return md
 
-echo parseMarkdown("""
- - [] ~~23~~
- - 32
- - [x] `23`
-
-``` nimrod
-a
-b
-```
-  """).toHtml()
+let input = stdin.readAll()
+stdout.write(parseMarkdown(input).toHtml())
