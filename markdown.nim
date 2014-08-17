@@ -23,6 +23,10 @@ let
     """<b>$1</b>""")
   strikethrough = (re""" ~~ ( (?:(?!~~) .)++ ) ~~ """,
     """<del>$1</del>""")
+  h1 = (re"""# .* $""", """<h1>$1</h1>""")
+  h2 = (re"""## .* $""", """<h2>$1</h2>""")
+  h3 = (re"""### .* $""", """<h3>$1</h3>""")
+  h4 = (re"""#### .* $""", """<h4>$1</h4>""")
 
   # Replaced with SHA hash
   blockCode = re(""" ^```(?:.*$) ([\n\r]|.)+ ^``` """,
@@ -99,7 +103,7 @@ proc toHtml*(md: TMarkdown): String =
     var strippedMatch = match.replace(blockQuoteLeadingSymbol)
     md = md.replace(match, "<blockquote>\n" & strippedMatch & "\n</blockquote>")
 
-  md = md.parallelReplace([url, link, image, italics, bold, strikethrough])
+  md = md.parallelReplace([url, link, image, italics, bold, strikethrough, h1, h2, h3, h4])
 
   # XXX nested lists
 
