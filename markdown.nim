@@ -23,10 +23,10 @@ let
     """<b>$1</b>""")
   strikethrough = (re""" ~~ ( (?:(?!~~) .)++ ) ~~ """,
     """<del>$1</del>""")
-  h1 = (re"""# .* $""", """<h1>$1</h1>""")
-  h2 = (re"""## .* $""", """<h2>$1</h2>""")
-  h3 = (re"""### .* $""", """<h3>$1</h3>""")
-  h4 = (re"""#### .* $""", """<h4>$1</h4>""")
+  h1 = (re("""^ \#    [[:blank:]]*+ ([^#\n\r]++) $""", {reExtended, reStudy, reMultiLine}), """<h1>$1</h1>""")
+  h2 = (re("""^ \#{2} [[:blank:]]*+ ([^#\n\r]++) $""", {reExtended, reStudy, reMultiLine}), """<h2>$1</h2>""")
+  h3 = (re("""^ \#{3} [[:blank:]]*+ ([^#\n\r]++) $""", {reExtended, reStudy, reMultiLine}), """<h3>$1</h3>""")
+  h4 = (re("""^ \#{4} [[:blank:]]*+ ([^#\n\r]++) $""", {reExtended, reStudy, reMultiLine}), """<h4>$1</h4>""")
 
   # Replaced with SHA hash
   blockCode = re(""" ^```(?:.*$) ([\n\r]|.)+ ^``` """,
