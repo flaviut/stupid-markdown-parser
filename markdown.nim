@@ -1,7 +1,7 @@
 import re, sha1, strutils
 
 type
-  TMarkdown* = String
+  Markdown* = string
 
 let
   url = (re"""(?<!href="|src=")(https?:\/\/  (?:(?!\s) .)++)""",
@@ -70,13 +70,13 @@ let
   taskListLine = re""" ^ [ \t]* [-*] [ \t]* \[(.?)\] [ \t]* (.*)$ """
   itemizedListLine = re""" ^ [ \t]* [-*] [ \t]* (.*)$ """
 
-proc parseMarkdown*(text: String): TMarkdown = text
+proc parseMarkdown*(text: string): Markdown = text
 
 proc findManipulateAndReplaceHash(
-     md: var TMarkDown,
-     hashToCodeMap: var Seq[Tuple[pattern: TRegex, repl: String]],
-     findExpr: TRegex,
-     transFunc: proc(v: String): String) =
+     md: var Markdown,
+     hashToCodeMap: var seq[tuple[pattern: Regex, repl: string]],
+     findExpr: Regex,
+     transFunc: proc(v: string): string) =
   let matches = md.findAll(findExpr)
   for match in matches:
     var modifiedMatch = transFunc(match)
@@ -84,17 +84,17 @@ proc findManipulateAndReplaceHash(
     md = md.replace(match, hash)
     hashToCodeMap.add((re(hash), modifiedMatch))
 
-proc toHtml*(md: TMarkdown): String =
+proc toHtml*(md: Markdown): string =
   var md = md
-  var hashToCodeMap: Seq[Tuple[pattern: TRegex, repl: String]] = @[]
-  var hashToInlineCodeMap: Seq[Tuple[pattern: TRegex, repl: String]] = @[]
+  var hashToCodeMap: seq[tuple[pattern: Regex, repl: string]] = @[]
+  var hashToInlineCodeMap: seq[tuple[pattern: Regex, repl: string]] = @[]
 
   findManipulateAndReplaceHash(md, hashToInlineCodeMap, inlineCode,
-    proc(s: String): String = "<code>" & s & "</code>")
+    proc(s: string): string = "<code>" & s & "</code>")
   findManipulateAndReplaceHash(md, hashToCodeMap, blockCode,
-    proc(s: String): String = "<pre><code>\n" & s & "\n</code></pre>\n")
+    proc(s: string): string = "<pre><code>\n" & s & "\n</code></pre>\n")
   findManipulateAndReplaceHash(md, hashToCodeMap, indentCode,
-    proc(s: String): String = (
+    proc(s: string): string = (
       var res = s.replace(indentCodeLeadingWhitespace, "");
       "<pre><code>\n" & res & "\n</code></pre>\n"
     ))
