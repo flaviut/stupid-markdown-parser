@@ -92,7 +92,9 @@ proc toHtml*(md: Markdown): string =
   findManipulateAndReplaceHash(md, hashToInlineCodeMap, inlineCode,
     proc(s: string): string = "<code>" & s & "</code>")
   findManipulateAndReplaceHash(md, hashToCodeMap, blockCode,
-    proc(s: string): string = "<pre><code>\n" & s & "\n</code></pre>\n")
+    proc(s: string): string = "<pre><code>\n" &
+                              s.splitLines[1..^2].join("n") &
+                              "\n</code></pre>\n")
   findManipulateAndReplaceHash(md, hashToCodeMap, indentCode,
     proc(s: string): string = (
       var res = s.replace(indentCodeLeadingWhitespace, "");
